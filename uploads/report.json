@@ -1,0 +1,21 @@
+{
+  "report_title": "SoundSense \u2014 Genre Classification Report",
+  "generated_at": "2026-02-16T19:27:47.226126",
+  "filename": "sample_test_audio.wav",
+  "predicted_genre": "Classical",
+  "confidence": 99.88,
+  "all_genres": {
+    "Blues": 0,
+    "Classical": 99.88,
+    "Country": 0,
+    "Disco": 0.02,
+    "Hip-Hop": 0,
+    "Jazz": 0.08,
+    "Metal": 0,
+    "Pop": 0.02,
+    "Reggae": 0,
+    "Rock": 0
+  },
+  "segments_analyzed": 2,
+  "processing_time": 11.66
+}

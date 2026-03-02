@@ -1,0 +1,59 @@
+[
+  {
+    "predicted_genre": "Classical",
+    "confidence": 99.88,
+    "filename": "sample_test_audio.wav",
+    "all_genres": {
+      "Blues": 0,
+      "Classical": 99.88,
+      "Country": 0,
+      "Disco": 0.02,
+      "Hip-Hop": 0,
+      "Jazz": 0.08,
+      "Metal": 0,
+      "Pop": 0.02,
+      "Reggae": 0,
+      "Rock": 0
+    },
+    "timestamp": "2026-02-18T14:41:16.632Z",
+    "flagged_at": "2026-02-18T20:11:16.987188"
+  },
+  {
+    "predicted_genre": "Reggae",
+    "confidence": 43.8,
+    "filename": "hiphop.00003.wav",
+    "all_genres": {
+      "Blues": 0.81,
+      "Classical": 6.11,
+      "Country": 3.33,
+      "Disco": 1.43,
+      "Hip-Hop": 11.56,
+      "Jazz": 5.94,
+      "Metal": 4.3,
+      "Pop": 19.71,
+      "Reggae": 43.8,
+      "Rock": 3.01
+    },
+    "timestamp": "2026-02-17T02:24:44.974Z",
+    "flagged_at": "2026-02-17T07:54:45.020249"
+  },
+  {
+    "predicted_genre": "Classical",
+    "confidence": 99.88,
+    "filename": "sample_test_audio.wav",
+    "all_genres": {
+      "Blues": 0,
+      "Classical": 99.88,
+      "Country": 0,
+      "Disco": 0.02,
+      "Hip-Hop": 0,
+      "Jazz": 0.08,
+      "Metal": 0,
+      "Pop": 0.02,
+      "Reggae": 0,
+      "Rock": 0
+    },
+    "timestamp": "2026-02-16T14:30:27.602Z",
+    "flagged_at": "2026-02-16T20:00:27.706155"
+  }
+]

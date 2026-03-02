@@ -1,0 +1,2736 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SoundSense — AI Music Genre Classifier</title>
+    <meta name="description" content="Upload your music and let AI predict the genre instantly using deep learning." />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet" />
+    <style>
+        /* ═══════════════════ RESET & TOKENS ═══════════════════ */
+
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-void: #06060c;
+            --bg-deep: #0c0c18;
+            --bg-surface: rgba(18, 18, 36, 0.7);
+            --bg-glass: rgba(22, 22, 44, 0.6);
+            --bg-glass-hover: rgba(30, 30, 58, 0.75);
+            --accent: #8b5cf6;
+            --accent-light: #a78bfa;
+            --accent-ultra: #c4b5fd;
+            --pink: #ec4899;
+            --pink-light: #f472b6;
+            --cyan: #06b6d4;
+            --cyan-light: #22d3ee;
+            --emerald: #10b981;
+            --amber: #f59e0b;
+            --red: #ef4444;
+            --text-1: #f8fafc;
+            --text-2: #cbd5e1;
+            --text-3: #94a3b8;
+            --text-4: #475569;
+            --border-subtle: rgba(139, 92, 246, 0.12);
+            --border-glass: rgba(139, 92, 246, 0.2);
+            --border-active: rgba(139, 92, 246, 0.5);
+            --glow-accent: 0 0 40px rgba(139, 92, 246, 0.25), 0 0 80px rgba(139, 92, 246, 0.12);
+            --glow-pink: 0 0 40px rgba(236, 72, 153, 0.2);
+            --radius-xl: 28px;
+            --radius-lg: 18px;
+            --radius-md: 14px;
+            --radius-sm: 10px;
+            --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+            --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+            --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes fade-in-up {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fade-in-up 0.8s var(--ease-out) both;
+        }
+
+        .stagger-1 {
+            animation-delay: 0.1s;
+        }
+
+        .stagger-2 {
+            animation-delay: 0.2s;
+        }
+
+        .stagger-3 {
+            animation-delay: 0.3s;
+        }
+
+        .stagger-4 {
+            animation-delay: 0.4s;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-void);
+            background-image:
+                radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.05) 0px, transparent 50%);
+            color: var(--text-1);
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ═══════════════════ COSMIC BACKGROUND ═══════════════════ */
+
+        .cosmos {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .cosmos::before {
+            content: '';
+            position: absolute;
+            inset: -50%;
+            background: radial-gradient(ellipse 120% 60% at 50% -10%, rgba(139, 92, 246, 0.12) 0%, transparent 60%), radial-gradient(ellipse 80% 50% at 95% 20%, rgba(236, 72, 153, 0.07) 0%, transparent 50%), radial-gradient(ellipse 70% 50% at 5% 80%, rgba(6, 182, 212, 0.06) 0%, transparent 50%), radial-gradient(ellipse 50% 40% at 50% 100%, rgba(139, 92, 246, 0.08) 0%, transparent 50%);
+            animation: cosmos-rotate 90s linear infinite;
+        }
+
+        @keyframes cosmos-rotate {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Floating particles */
+
+        .particle {
+            position: fixed;
+            width: var(--size);
+            height: var(--size);
+            background: radial-gradient(circle, var(--color) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            animation: particle-float var(--duration) var(--delay) ease-in-out infinite;
+            opacity: 0.4;
+        }
+
+        @keyframes particle-float {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+                opacity: 0.4;
+            }
+
+            25% {
+                transform: translate(var(--dx), var(--dy)) scale(1.2);
+                opacity: 0.6;
+            }
+
+            50% {
+                transform: translate(calc(var(--dx) * -0.5), calc(var(--dy) * 1.5)) scale(0.9);
+                opacity: 0.3;
+            }
+
+            75% {
+                transform: translate(calc(var(--dx) * 0.8), calc(var(--dy) * -0.3)) scale(1.1);
+                opacity: 0.5;
+            }
+        }
+
+        /* Grid lines */
+
+        .grid-bg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(139, 92, 246, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(139, 92, 246, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+            -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+        }
+
+        /* Ambient Noise Texture */
+        body::after {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* ═══════════════════ MAIN LAYOUT ═══════════════════ */
+
+        .app {
+            position: relative;
+            z-index: 1;
+            max-width: 780px;
+            margin: 0 auto;
+            padding: 48px 20px 80px;
+        }
+
+        /* ═══════════════════ NAVIGATION BAR ═══════════════════ */
+
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 14px 24px;
+            background: rgba(6, 6, 12, 0.6);
+            backdrop-filter: blur(20px) saturate(1.8);
+            -webkit-backdrop-filter: blur(20px) saturate(1.8);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .nav-logo {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent), var(--pink));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            box-shadow: var(--glow-accent);
+        }
+
+        .nav-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--emerald);
+            padding: 5px 12px;
+            border-radius: 50px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .nav-status .pulse {
+            width: 6px;
+            height: 6px;
+            background: var(--emerald);
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .nav-status .pulse::after {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 50%;
+            border: 1px solid var(--emerald);
+            animation: nav-pulse 2s ease-in-out infinite;
+            opacity: 0;
+        }
+
+        @keyframes nav-pulse {
+            0% {
+                transform: scale(0.8);
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: scale(2.2);
+                opacity: 0;
+            }
+        }
+
+        /* ═══════════════════ HERO ═══════════════════ */
+
+        .hero {
+            text-align: center;
+            margin-top: 60px;
+            margin-bottom: 48px;
+            padding: 0 12px;
+        }
+
+        .hero-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 18px;
+            border-radius: 50px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            backdrop-filter: blur(12px);
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--accent-light);
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+        }
+
+        .hero-chip svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.4rem, 6vw, 3.6rem);
+            font-weight: 900;
+            letter-spacing: -1.5px;
+            line-height: 1.1;
+            margin-bottom: 16px;
+        }
+
+        .hero h1 .gradient-text {
+            background: linear-gradient(135deg, var(--text-1) 0%, var(--accent) 40%, var(--pink) 70%, var(--cyan) 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient-shift 6s ease infinite;
+        }
+
+        @keyframes gradient-shift {
+
+            0%,
+            100% {
+                background-position: 0% center;
+            }
+
+            50% {
+                background-position: 200% center;
+            }
+        }
+
+        .hero p {
+            font-size: 1.08rem;
+            color: var(--text-2);
+            max-width: 480px;
+            margin: 0 auto 28px;
+            font-weight: 400;
+        }
+
+        /* Soundwave equalizer */
+
+        .soundwave {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 3px;
+            height: 36px;
+            margin-bottom: 0;
+        }
+
+        .soundwave span {
+            display: block;
+            width: 3.5px;
+            border-radius: 3px;
+            background: linear-gradient(180deg, var(--accent), var(--pink));
+            animation: wave-bar 1.5s ease-in-out infinite;
+            transform-origin: bottom;
+        }
+
+        .soundwave span:nth-child(1) {
+            height: 35%;
+            animation-delay: 0.00s;
+        }
+
+        .soundwave span:nth-child(2) {
+            height: 55%;
+            animation-delay: 0.10s;
+        }
+
+        .soundwave span:nth-child(3) {
+            height: 75%;
+            animation-delay: 0.20s;
+        }
+
+        .soundwave span:nth-child(4) {
+            height: 45%;
+            animation-delay: 0.05s;
+        }
+
+        .soundwave span:nth-child(5) {
+            height: 90%;
+            animation-delay: 0.30s;
+        }
+
+        .soundwave span:nth-child(6) {
+            height: 60%;
+            animation-delay: 0.15s;
+        }
+
+        .soundwave span:nth-child(7) {
+            height: 80%;
+            animation-delay: 0.25s;
+        }
+
+        .soundwave span:nth-child(8) {
+            height: 40%;
+            animation-delay: 0.08s;
+        }
+
+        .soundwave span:nth-child(9) {
+            height: 95%;
+            animation-delay: 0.35s;
+        }
+
+        .soundwave span:nth-child(10) {
+            height: 50%;
+            animation-delay: 0.12s;
+        }
+
+        .soundwave span:nth-child(11) {
+            height: 70%;
+            animation-delay: 0.22s;
+        }
+
+        .soundwave span:nth-child(12) {
+            height: 85%;
+            animation-delay: 0.28s;
+        }
+
+        .soundwave span:nth-child(13) {
+            height: 55%;
+            animation-delay: 0.18s;
+        }
+
+        .soundwave span:nth-child(14) {
+            height: 65%;
+            animation-delay: 0.32s;
+        }
+
+        .soundwave span:nth-child(15) {
+            height: 40%;
+            animation-delay: 0.07s;
+        }
+
+        .soundwave span:nth-child(16) {
+            height: 75%;
+            animation-delay: 0.24s;
+        }
+
+        @keyframes wave-bar {
+
+            0%,
+            100% {
+                transform: scaleY(0.25);
+            }
+
+            50% {
+                transform: scaleY(1);
+            }
+        }
+
+        /* ═══════════════════ GLASS CARD ═══════════════════ */
+
+        .glass-card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(24px) saturate(1.8);
+            -webkit-backdrop-filter: blur(24px) saturate(1.8);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-xl);
+            padding: 36px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.6s var(--ease-out),
+                opacity 0.6s var(--ease-out),
+                border-color 0.4s var(--ease-out),
+                box-shadow 0.4s var(--ease-out);
+        }
+
+        .section-fade-out {
+            opacity: 0;
+            transform: translateY(-20px) scale(0.98);
+            pointer-events: none;
+        }
+
+        .section-fade-in {
+            animation: section-enter 0.8s var(--ease-out) forwards;
+        }
+
+        @keyframes section-enter {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(1.02);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.3), rgba(236, 72, 153, 0.2), transparent);
+        }
+
+        .glass-card:hover {
+            border-color: var(--border-active);
+            box-shadow: var(--glow-accent);
+        }
+
+        /* ═══════════════════ UPLOAD ZONE ═══════════════════ */
+
+        .upload-section {
+            margin-bottom: 28px;
+        }
+
+        .drop-zone {
+            position: relative;
+            border: 2px dashed rgba(139, 92, 246, 0.2);
+            border-radius: var(--radius-lg);
+            padding: 52px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s var(--ease-out);
+            background: rgba(139, 92, 246, 0.02);
+        }
+
+        .drop-zone:hover,
+        .drop-zone.drag-over {
+            border-color: var(--accent);
+            background: rgba(139, 92, 246, 0.06);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(139, 92, 246, 0.1);
+        }
+
+        .drop-zone:focus-visible {
+            outline: 2px solid var(--accent-light);
+            outline-offset: 6px;
+            border-color: var(--accent-light);
+        }
+
+        .dz-icon-ring {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(236, 72, 153, 0.1));
+            border: 2px solid rgba(139, 92, 246, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            animation: ring-float 4s ease-in-out infinite;
+        }
+
+        .dz-icon-ring::after {
+            content: '';
+            position: absolute;
+            inset: -6px;
+            border-radius: 50%;
+            border: 1px solid rgba(139, 92, 246, 0.1);
+            animation: ring-expand 3s ease-in-out infinite;
+        }
+
+        @keyframes ring-float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+
+        @keyframes ring-expand {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+
+            50% {
+                transform: scale(1.15);
+                opacity: 0;
+            }
+        }
+
+        .dz-icon-ring svg {
+            width: 32px;
+            height: 32px;
+            stroke: var(--accent-light);
+            fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .drop-zone h3 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text-1);
+            margin-bottom: 6px;
+        }
+
+        .drop-zone .hint {
+            font-size: 0.85rem;
+            color: var(--text-3);
+        }
+
+        .drop-zone .browse {
+            color: var(--accent-light);
+            cursor: pointer;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .drop-zone .browse:hover {
+            color: var(--accent-ultra);
+        }
+
+        .formats {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .format-tag {
+            padding: 3px 10px;
+            border-radius: 6px;
+            background: rgba(139, 92, 246, 0.08);
+            border: 1px solid rgba(139, 92, 246, 0.12);
+            font-size: 0.68rem;
+            font-weight: 600;
+            color: var(--text-3);
+            letter-spacing: 0.5px;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+        }
+
+        /* ═══════════════════ MODEL SNAPSHOT ═══════════════════ */
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+
+        .info-card {
+            padding: 14px 16px;
+            border-radius: var(--radius-lg);
+            background: linear-gradient(145deg, rgba(18, 18, 36, 0.9), rgba(12, 12, 24, 0.75));
+            border: 1px solid var(--border-glass);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+            min-height: 96px;
+        }
+
+        .info-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 50px;
+            background: rgba(139, 92, 246, 0.12);
+            border: 1px solid var(--border-glass);
+            color: var(--accent-ultra);
+            font-size: 0.72rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .info-value {
+            font-weight: 800;
+            font-size: 1.15rem;
+            letter-spacing: -0.3px;
+            color: var(--text-1);
+        }
+
+        .info-sub {
+            font-size: 0.85rem;
+            color: var(--text-3);
+            margin-top: 4px;
+            line-height: 1.35;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        /* ═══════════════════ FILE PREVIEW ═══════════════════ */
+
+        .file-preview {
+            display: none;
+            align-items: center;
+            gap: 14px;
+            margin-top: 20px;
+            padding: 16px 18px;
+            background: rgba(139, 92, 246, 0.06);
+            border: 1px solid rgba(139, 92, 246, 0.15);
+            border-radius: var(--radius-md);
+            transition: all 0.3s var(--ease-out);
+        }
+
+        .file-preview.active {
+            display: flex;
+        }
+
+        .file-preview:hover {
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .fp-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--accent), var(--pink));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+
+        .fp-icon svg {
+            width: 22px;
+            height: 22px;
+            fill: white;
+        }
+
+        .fp-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .fp-name {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text-1);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .fp-meta {
+            font-size: 0.75rem;
+            color: var(--text-3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .fp-meta .dot {
+            width: 3px;
+            height: 3px;
+            background: var(--text-4);
+            border-radius: 50%;
+        }
+
+        .fp-remove {
+            width: 34px;
+            height: 34px;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--red);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .fp-remove:hover {
+            background: rgba(239, 68, 68, 0.2);
+            transform: scale(1.05);
+        }
+
+        /* ═══════════════════ AUDIO PLAYER ═══════════════════ */
+
+        .audio-player {
+            display: none;
+            margin-top: 16px;
+            padding: 14px 18px;
+            background: rgba(6, 182, 212, 0.04);
+            border: 1px solid rgba(6, 182, 212, 0.12);
+            border-radius: var(--radius-md);
+        }
+
+        .audio-player.active {
+            display: block;
+        }
+
+        .audio-player audio {
+            width: 100%;
+            height: 36px;
+            border-radius: 8px;
+            outline: none;
+        }
+
+        .audio-player audio::-webkit-media-controls-panel {
+            background: rgba(18, 18, 36, 0.9);
+        }
+
+        /* ═══════════════════ SUBMIT BUTTON ═══════════════════ */
+
+        .btn-classify {
+            width: 100%;
+            margin-top: 24px;
+            padding: 17px 24px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 700;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.35s var(--ease-out);
+            background: linear-gradient(135deg, var(--accent) 0%, var(--pink) 100%);
+            color: white;
+            letter-spacing: 0.3px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(139, 92, 246, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-classify::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, transparent 50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .btn-classify::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(transparent, rgba(255, 255, 255, 0.1), transparent 30%);
+            animation: btn-shine 4s linear infinite;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .btn-classify:hover::before {
+            opacity: 1;
+        }
+
+        .btn-classify:hover::after {
+            opacity: 1;
+        }
+
+        .btn-classify:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 20px 60px rgba(139, 92, 246, 0.4), var(--glow-accent);
+        }
+
+        .btn-classify:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-classify:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .btn-classify:disabled::before,
+        .btn-classify:disabled::after {
+            display: none;
+        }
+
+        .btn-classify svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        @keyframes btn-shine {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ═══════════════════ ERROR ═══════════════════ */
+
+        .error-toast {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            margin-top: 16px;
+            padding: 14px 18px;
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: var(--radius-md);
+            color: #fca5a5;
+            font-size: 0.85rem;
+            font-weight: 500;
+            animation: shake 0.4s var(--ease-out);
+        }
+
+        .error-toast.active {
+            display: flex;
+        }
+
+        .error-toast svg {
+            width: 18px;
+            height: 18px;
+            fill: var(--red);
+            flex-shrink: 0;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            20% {
+                transform: translateX(-6px);
+            }
+
+            40% {
+                transform: translateX(6px);
+            }
+
+            60% {
+                transform: translateX(-4px);
+            }
+
+            80% {
+                transform: translateX(4px);
+            }
+        }
+
+        /* ═══════════════════ LOADING SCREEN ═══════════════════ */
+
+        .loading-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 24px;
+        }
+
+        .loading-screen.active {
+            display: flex;
+        }
+
+        .loader-ring {
+            width: 64px;
+            height: 64px;
+            position: relative;
+            margin-bottom: 28px;
+        }
+
+        .loader-ring::before,
+        .loader-ring::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 3px solid transparent;
+        }
+
+        .loader-ring::before {
+            border-top-color: var(--accent);
+            animation: spin 1s linear infinite;
+        }
+
+        .loader-ring::after {
+            border-bottom-color: var(--pink);
+            animation: spin 1.5s linear infinite reverse;
+            inset: 6px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loader-note {
+            font-size: 0.92rem;
+            font-weight: 500;
+            color: var(--text-2);
+            margin-bottom: 6px;
+        }
+
+        .loader-detail {
+            font-size: 0.78rem;
+            color: var(--text-3);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Progress steps */
+
+        .progress-steps {
+            margin-top: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            text-align: left;
+            width: 260px;
+        }
+
+        .progress-step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.8rem;
+            color: var(--text-4);
+            transition: color 0.3s;
+        }
+
+        .progress-step.active {
+            color: var(--accent-light);
+        }
+
+        .progress-step.done {
+            color: var(--emerald);
+        }
+
+        .progress-step .step-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 1.5px solid currentColor;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+
+        .progress-step.active .step-icon {
+            border-color: var(--accent);
+            background: rgba(139, 92, 246, 0.15);
+            animation: step-pulse 1.5s ease-in-out infinite;
+        }
+
+        .progress-step.done .step-icon {
+            border-color: var(--emerald);
+            background: rgba(16, 185, 129, 0.15);
+        }
+
+        @keyframes step-pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 0 6px rgba(139, 92, 246, 0);
+            }
+        }
+
+        /* ═══════════════════ RESULTS ═══════════════════ */
+
+        .results-section {
+            display: none;
+            animation: results-enter 0.6s var(--ease-out);
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        @keyframes results-enter {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.97);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Hero result */
+
+        .result-hero {
+            text-align: center;
+            padding: 40px 24px 32px;
+            margin-bottom: 24px;
+        }
+
+        .result-emoji {
+            width: 88px;
+            height: 88px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.4rem;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(236, 72, 153, 0.08));
+            border: 2px solid rgba(139, 92, 246, 0.2);
+            box-shadow: var(--glow-accent);
+            animation: emoji-pop 0.6s var(--ease-spring);
+        }
+
+        @keyframes emoji-pop {
+            from {
+                transform: scale(0);
+            }
+
+            to {
+                transform: scale(1);
+            }
+        }
+
+        .result-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-3);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .result-genre {
+            font-size: clamp(2.2rem, 5vw, 3rem);
+            font-weight: 900;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, var(--accent-light), var(--pink-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+        }
+
+        /* Confidence ring */
+
+        .confidence-ring-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+
+        .confidence-mini-ring {
+            width: 44px;
+            height: 44px;
+            position: relative;
+        }
+
+        .confidence-mini-ring svg {
+            width: 44px;
+            height: 44px;
+            transform: rotate(-90deg);
+        }
+
+        .confidence-mini-ring .track {
+            fill: none;
+            stroke: rgba(139, 92, 246, 0.1);
+            stroke-width: 3;
+        }
+
+        .confidence-mini-ring .fill-ring {
+            fill: none;
+            stroke: url(#ring-gradient);
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-dasharray: 120;
+            stroke-dashoffset: 120;
+            transition: stroke-dashoffset 1.2s var(--ease-out);
+        }
+
+        .confidence-text {
+            font-size: 1.1rem;
+            color: var(--text-2);
+            font-weight: 500;
+        }
+
+        .confidence-text span {
+            color: var(--emerald);
+            font-weight: 800;
+            font-size: 1.3rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Genre bars */
+
+        .bars-section {
+            padding: 32px 36px;
+        }
+
+        .bars-title {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-3);
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bars-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, var(--border-glass), transparent);
+        }
+
+        .genre-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+            animation: bar-in 0.5s var(--ease-out) backwards;
+        }
+
+        .genre-row:nth-child(1) {
+            animation-delay: 0.05s;
+        }
+
+        .genre-row:nth-child(2) {
+            animation-delay: 0.10s;
+        }
+
+        .genre-row:nth-child(3) {
+            animation-delay: 0.15s;
+        }
+
+        .genre-row:nth-child(4) {
+            animation-delay: 0.20s;
+        }
+
+        .genre-row:nth-child(5) {
+            animation-delay: 0.25s;
+        }
+
+        .genre-row:nth-child(6) {
+            animation-delay: 0.30s;
+        }
+
+        .genre-row:nth-child(7) {
+            animation-delay: 0.35s;
+        }
+
+        .genre-row:nth-child(8) {
+            animation-delay: 0.40s;
+        }
+
+        .genre-row:nth-child(9) {
+            animation-delay: 0.45s;
+        }
+
+        .genre-row:nth-child(10) {
+            animation-delay: 0.50s;
+        }
+
+        @keyframes bar-in {
+            from {
+                opacity: 0;
+                transform: translateX(-12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .genre-row-label {
+            width: 80px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--text-2);
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .genre-row-emoji {
+            font-size: 1rem;
+            width: 24px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .genre-bar-track {
+            flex: 1;
+            height: 30px;
+            background: rgba(139, 92, 246, 0.06);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .genre-bar-value {
+            height: 100%;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            padding-left: 12px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: white;
+            font-family: 'JetBrains Mono', monospace;
+            transition: width 1.2s var(--ease-out);
+            min-width: fit-content;
+            position: relative;
+        }
+
+        .genre-bar-value::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent 60%, rgba(255, 255, 255, 0.08));
+            border-radius: inherit;
+        }
+
+        /* Bar color palette */
+
+        .bar-c0 {
+            background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+        }
+
+        .bar-c1 {
+            background: linear-gradient(90deg, #ec4899, #db2777);
+        }
+
+        .bar-c2 {
+            background: linear-gradient(90deg, #06b6d4, #0891b2);
+        }
+
+        .bar-c3 {
+            background: linear-gradient(90deg, #10b981, #059669);
+        }
+
+        .bar-c4 {
+            background: linear-gradient(90deg, #f59e0b, #d97706);
+        }
+
+        .bar-c5 {
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+        }
+
+        .bar-c6 {
+            background: linear-gradient(90deg, #6366f1, #4f46e5);
+        }
+
+        .bar-c7 {
+            background: linear-gradient(90deg, #14b8a6, #0d9488);
+        }
+
+        .bar-c8 {
+            background: linear-gradient(90deg, #f97316, #ea580c);
+        }
+
+        .bar-c9 {
+            background: linear-gradient(90deg, #84cc16, #65a30d);
+        }
+
+        /* Top-1 badge */
+
+        .top-badge {
+            margin-left: auto;
+            margin-right: 4px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.12);
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        /* ═══════════════════ ACTION BUTTONS ═══════════════════ */
+
+        .actions-row {
+            display: flex;
+            gap: 12px;
+            padding: 0 36px 32px;
+        }
+
+        .btn-secondary {
+            flex: 1;
+            padding: 14px 20px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            color: var(--text-2);
+            cursor: pointer;
+            transition: all 0.3s var(--ease-out);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-glass-hover);
+            border-color: var(--border-active);
+            color: var(--text-1);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+
+        /* ═══════════════════ FEEDBACK BUTTONS ═══════════════════ */
+
+        .feedback-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 0 36px 24px;
+        }
+
+        .feedback-label {
+            font-size: 0.85rem;
+            color: var(--text-3);
+            font-weight: 500;
+        }
+
+        .btn-feedback {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px solid var(--border-glass);
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            cursor: pointer;
+            transition: all 0.3s var(--ease-out);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-feedback::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .btn-feedback svg {
+            width: 22px;
+            height: 22px;
+            fill: var(--text-3);
+            transition: all 0.3s var(--ease-out);
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-feedback-good:hover {
+            border-color: var(--emerald);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-feedback-good:hover::before {
+            background: rgba(16, 185, 129, 0.15);
+            opacity: 1;
+        }
+
+        .btn-feedback-good:hover svg {
+            fill: var(--emerald);
+            transform: scale(1.1);
+        }
+
+        .btn-feedback-good.active {
+            border-color: var(--emerald);
+            background: rgba(16, 185, 129, 0.2);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25);
+        }
+
+        .btn-feedback-good.active svg {
+            fill: var(--emerald);
+            animation: thumb-bounce 0.5s var(--ease-spring);
+        }
+
+        .btn-feedback-bad:hover {
+            border-color: var(--red);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 24px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-feedback-bad:hover::before {
+            background: rgba(239, 68, 68, 0.15);
+            opacity: 1;
+        }
+
+        .btn-feedback-bad:hover svg {
+            fill: var(--red);
+            transform: scale(1.1);
+        }
+
+        .btn-feedback-bad.active {
+            border-color: var(--red);
+            background: rgba(239, 68, 68, 0.2);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.25);
+        }
+
+        .btn-feedback-bad.active svg {
+            fill: var(--red);
+            animation: thumb-bounce 0.5s var(--ease-spring);
+        }
+
+        @keyframes thumb-bounce {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.3) rotate(-10deg);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* ═══════════════════ PROCESSING STATS ═══════════════════ */
+
+        .proc-stats {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .stat-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 14px;
+            border-radius: 50px;
+            background: rgba(139, 92, 246, 0.08);
+            border: 1px solid rgba(139, 92, 246, 0.15);
+            font-size: 0.73rem;
+            font-weight: 500;
+            color: var(--text-2);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-chip svg {
+            width: 14px;
+            height: 14px;
+            fill: var(--accent-light);
+            flex-shrink: 0;
+        }
+
+        /* ═══════════════════ HISTORY PANEL ═══════════════════ */
+
+        .history-section {
+            margin-top: 28px;
+        }
+
+        .history-toggle {
+            width: 100%;
+            padding: 14px 20px;
+            font-family: inherit;
+            font-size: 0.88rem;
+            font-weight: 600;
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            color: var(--text-2);
+            cursor: pointer;
+            transition: all 0.3s var(--ease-out);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .history-toggle:hover {
+            background: var(--bg-glass-hover);
+            border-color: var(--border-active);
+            color: var(--text-1);
+        }
+
+        .history-toggle .ht-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .history-toggle svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+
+        .history-toggle .ht-arrow {
+            transition: transform 0.3s var(--ease-out);
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .history-toggle.open .ht-arrow {
+            transform: rotate(180deg);
+        }
+
+        .history-badge {
+            background: var(--accent);
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 50px;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .history-list {
+            display: none;
+            margin-top: 12px;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            border: 1px solid var(--border-glass);
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            animation: history-slide 0.35s var(--ease-out);
+        }
+
+        .history-list.open {
+            display: block;
+        }
+
+        @keyframes history-slide {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.06);
+            transition: background 0.2s;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-item:hover {
+            background: rgba(139, 92, 246, 0.04);
+        }
+
+        .hi-emoji {
+            font-size: 1.3rem;
+            width: 28px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .hi-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .hi-genre {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-1);
+        }
+
+        .hi-file {
+            font-size: 0.72rem;
+            color: var(--text-3);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .hi-right {
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .hi-conf {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--emerald);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .hi-time {
+            font-size: 0.65rem;
+            color: var(--text-4);
+        }
+
+        .history-empty {
+            padding: 32px 18px;
+            text-align: center;
+            color: var(--text-4);
+            font-size: 0.85rem;
+        }
+
+        .history-clear {
+            width: 100%;
+            padding: 10px;
+            font-family: inherit;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: none;
+            border-top: 1px solid rgba(239, 68, 68, 0.1);
+            background: rgba(239, 68, 68, 0.04);
+            color: var(--red);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .history-clear:hover {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        /* ═══════════════════ TOAST NOTIFICATION ═══════════════════ */
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
+            background: var(--emerald);
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 600;
+            z-index: 200;
+            pointer-events: none;
+            opacity: 0;
+            transition: all 0.4s var(--ease-out);
+            box-shadow: 0 8px 30px rgba(16, 185, 129, 0.3);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ═══════════════════ FOOTER ═══════════════════ */
+
+        .footer {
+            text-align: center;
+            margin-top: 56px;
+            font-size: 0.78rem;
+            color: var(--text-4);
+        }
+
+        .footer .heart {
+            color: var(--pink);
+        }
+
+        .footer a {
+            color: var(--accent-light);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer a:hover {
+            color: var(--accent-ultra);
+            text-decoration: underline;
+        }
+
+        /* ═══════════════════ RESPONSIVE ═══════════════════ */
+
+        @media (max-width: 640px) {
+            .app {
+                padding: 40px 14px 60px;
+            }
+
+            .glass-card {
+                padding: 24px;
+            }
+
+            .bars-section {
+                padding: 24px 20px;
+            }
+
+            .actions-row {
+                padding: 0 20px 24px;
+                flex-direction: column;
+            }
+
+            .genre-row-label {
+                width: 65px;
+                font-size: 0.75rem;
+            }
+
+            .result-hero {
+                padding: 32px 16px 24px;
+            }
+
+            .proc-stats {
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Cosmic background -->
+    <div class="cosmos"></div>
+    <div class="grid-bg"></div>
+
+    <!-- Particles (generated by JS) -->
+    <div id="particles"></div>
+
+    <!-- SVG Defs -->
+    <svg width="0" height="0" style="position:absolute;">
+        <defs>
+            <linearGradient id="ring-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#8b5cf6" />
+                <stop offset="100%" stop-color="#ec4899" />
+            </linearGradient>
+        </defs>
+    </svg>
+
+    <!-- ═══ NAV ═══ -->
+    <nav class="nav">
+        <div class="nav-brand">
+            <div class="nav-logo">🎧</div>
+            SoundSense
+        </div>
+        <div class="nav-status">
+            <span class="pulse"></span>
+            <span id="navStatusText">Model Ready</span>
+        </div>
+    </nav>
+
+    <div class="app">
+
+        <!-- ═══ HERO ═══ -->
+        <section class="hero">
+            <div class="hero-chip animate-in stagger-1">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                    <path d="M2 17l10 5 10-5" />
+                    <path d="M2 12l10 5 10-5" />
+                </svg> Deep Learning Powered
+            </div>
+            <h1 class="animate-in stagger-2"><span class="gradient-text">Music Genre Classifier</span></h1>
+            <p class="animate-in stagger-3">Drop a track and watch AI decode its genre with precision. Powered by neural
+                networks trained on thousands of songs.</p>
+            <div class="soundwave animate-in stagger-4">
+                <span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span>
+            </div>
+        </section>
+
+        <!-- ═══ MODEL SNAPSHOT ═══ -->
+        <section class="info-grid animate-in stagger-4" aria-label="Model snapshot">
+            <div class="info-card">
+                <div class="info-pill">Model</div>
+                <div class="info-value" id="infoParams">—</div>
+                <div class="info-sub" id="infoInput">Input shape: —</div>
+            </div>
+            <div class="info-card">
+                <div class="info-pill">Genres</div>
+                <div class="info-value" id="infoGenres">—</div>
+                <div class="info-sub" id="infoLabels">Loading genre labels…</div>
+            </div>
+            <div class="info-card">
+                <div class="info-pill">Supported Formats</div>
+                <div class="info-value" id="infoFormats">—</div>
+                <div class="info-sub">Drag & browse locally</div>
+            </div>
+            <div class="info-card">
+                <div class="info-pill">Workflow</div>
+                <div class="info-value">Segmented</div>
+                <div class="info-sub">3s overlaps, averaged logits</div>
+            </div>
+        </section>
+
+        <!-- ═══ UPLOAD CARD ═══ -->
+        <div class="glass-card upload-section animate-in stagger-4" id="uploadCard">
+            <div class="drop-zone" id="dropZone" role="button" tabindex="0" aria-label="Drop or browse an audio file">
+                <div class="dz-icon-ring">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                </div>
+                <h3>Drop your audio file here</h3>
+                <p class="hint">or <span class="browse">browse files</span> from your device</p>
+                <div class="formats">
+                    <span class="format-tag">WAV</span>
+                    <span class="format-tag">MP3</span>
+                    <span class="format-tag">OGG</span>
+                    <span class="format-tag">FLAC</span>
+                    <span class="format-tag">M4A</span>
+                </div>
+            </div>
+
+            <input type="file" class="file-input" id="fileInput" accept=".wav,.mp3,.ogg,.flac,.m4a,audio/*" />
+
+            <!-- File preview -->
+            <div class="file-preview" id="filePreview">
+                <div class="fp-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M9 18V5l12-2v13M9 18c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 1.34 3 3zM21 16c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 1.34 3 3z" />
+                    </svg>
+                </div>
+                <div class="fp-info">
+                    <div class="fp-name" id="fpName">—</div>
+                    <div class="fp-meta">
+                        <span id="fpSize">—</span>
+                        <span class="dot"></span>
+                        <span id="fpType">—</span>
+                        <span class="dot"></span>
+                        <span id="fpDuration">—</span>
+                    </div>
+                </div>
+                <button class="fp-remove" id="fpRemove" title="Remove">✕</button>
+            </div>
+
+            <!-- Audio player -->
+            <div class="audio-player" id="audioPlayer">
+                <audio controls id="audioEl"></audio>
+            </div>
+
+            <!-- Error -->
+            <div class="error-toast" id="errorToast">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-2h2v2h-2zm0-4V7h2v6h-2z" />
+                </svg>
+                <span id="errorText"></span>
+            </div>
+
+            <!-- Submit button -->
+            <button class="btn-classify" id="btnClassify" disabled>
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M9 18V5l12-2v13M9 18c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 1.34 3 3zM21 16c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 1.34 3 3z" />
+                </svg>
+                Classify Genre
+            </button>
+        </div>
+
+        <!-- ═══ LOADING ═══ -->
+        <div class="loading-screen" id="loadingScreen">
+            <div class="loader-ring"></div>
+            <div class="loader-note">Analyzing your track…</div>
+            <div class="loader-detail" id="loaderDetail">Initializing</div>
+
+            <div class="progress-steps" id="progressSteps">
+                <div class="progress-step active" data-step="0">
+                    <span class="step-icon">1</span> Loading audio file
+                </div>
+                <div class="progress-step" data-step="1">
+                    <span class="step-icon">2</span> Extracting mel spectrogram
+                </div>
+                <div class="progress-step" data-step="2">
+                    <span class="step-icon">3</span> Running neural network
+                </div>
+                <div class="progress-step" data-step="3">
+                    <span class="step-icon">4</span> Computing probabilities
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ RESULTS ═══ -->
+        <div class="results-section" id="resultsSection">
+            <div class="glass-card" style="padding: 0; overflow: hidden;">
+
+                <div class="result-hero">
+                    <div class="result-emoji" id="resultEmoji">🎸</div>
+                    <div class="result-label">Predicted Genre</div>
+                    <div class="result-genre" id="resultGenre">Rock</div>
+                    <div class="confidence-ring-wrapper">
+                        <div class="confidence-mini-ring">
+                            <svg viewBox="0 0 44 44">
+                                <circle class="track" cx="22" cy="22" r="19" />
+                                <circle class="fill-ring" id="confRing" cx="22" cy="22" r="19" />
+                            </svg>
+                        </div>
+                        <div class="confidence-text">Confidence: <span id="confVal">0%</span></div>
+                    </div>
+                    <div class="proc-stats" id="procStats">
+                        <div class="stat-chip">
+                            <svg viewBox="0 0 24 24">
+                                <path
+                                    d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z" />
+                            </svg>
+                            <span id="statSegments">— segments</span>
+                        </div>
+                        <div class="stat-chip">
+                            <svg viewBox="0 0 24 24">
+                                <path
+                                    d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z" />
+                            </svg>
+                            <span id="statTime">— sec</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bars-section">
+                    <div class="bars-title">Genre Probabilities</div>
+                    <div id="genreBars"></div>
+                </div>
+
+                <div class="actions-row">
+                    <button class="btn-secondary" id="btnAgain">
+                        <svg viewBox="0 0 24 24">
+                            <path
+                                d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                        </svg>
+                        Classify Another
+                    </button>
+                    <button class="btn-secondary" id="btnDownload">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+                        </svg>
+                        Download Report
+                    </button>
+                    <button class="btn-secondary" id="btnShare">
+                        <svg viewBox="0 0 24 24">
+                            <path
+                                d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                        </svg>
+                        Copy Result
+                    </button>
+                    <button class="btn-secondary btn-flag" id="btnFlag">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6z" />
+                        </svg>
+                        Flag
+                    </button>
+                </div>
+
+                <!-- Feedback Row -->
+                <div class="feedback-row">
+                    <span class="feedback-label">Was this prediction accurate?</span>
+                    <button class="btn-feedback btn-feedback-good" id="btnGoodFeedback" title="Good prediction">
+                        <svg viewBox="0 0 24 24">
+                            <path
+                                d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z" />
+                        </svg>
+                    </button>
+                    <button class="btn-feedback btn-feedback-bad" id="btnBadFeedback" title="Bad prediction">
+                        <svg viewBox="0 0 24 24">
+                            <path
+                                d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ HISTORY PANEL ═══ -->
+        <div class="history-section" id="historySection">
+            <button class="history-toggle" id="historyToggle">
+                <span class="ht-left">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0013 21a9 9 0 000-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z" />
+                    </svg>
+                    Prediction History
+                    <span class="history-badge" id="historyBadge">0</span>
+                </span>
+                <svg class="ht-arrow" viewBox="0 0 24 24" width="18" height="18">
+                    <polyline points="6 9 12 15 18 9" />
+                </svg>
+            </button>
+            <div class="history-list" id="historyList"></div>
+        </div>
+
+        <!-- ═══ FOOTER ═══ -->
+        <footer class="footer">
+            <p>Crafted with <span class="heart">♥</span> using MFCCs & CNN &nbsp;·&nbsp; SoundSense AI</p>
+        </footer>
+
+    </div>
+
+    <!-- Toast notification -->
+    <div class="toast" id="toast"></div>
+
+    <!-- ═══════════════════ JAVASCRIPT ═══════════════════ -->
+    <script>
+        (() => {
+            // ─── Genre config ────────────────────────────────
+            const EMOJIS = {
+                "Blues": "🎷",
+                "Classical": "🎻",
+                "Country": "🤠",
+                "Disco": "🪩",
+                "Hip-Hop": "🎤",
+                "Jazz": "🎹",
+                "Metal": "🤘",
+                "Pop": "🎵",
+                "Reggae": "🌴",
+                "Rock": "🎸"
+            };
+
+            // ─── DOM refs ────────────────────────────────────
+            const $ = id => document.getElementById(id);
+            const dropZone = $("dropZone");
+            const fileInput = $("fileInput");
+            const filePreview = $("filePreview");
+            const fpName = $("fpName");
+            const fpSize = $("fpSize");
+            const fpType = $("fpType");
+            const fpDuration = $("fpDuration");
+            const fpRemove = $("fpRemove");
+            const audioPlayer = $("audioPlayer");
+            const audioEl = $("audioEl");
+            const btnClassify = $("btnClassify");
+            const uploadCard = $("uploadCard");
+            const loadingScreen = $("loadingScreen");
+            const loaderDetail = $("loaderDetail");
+            const progressSteps = $("progressSteps");
+            const resultsSection = $("resultsSection");
+            const resultEmoji = $("resultEmoji");
+            const resultGenre = $("resultGenre");
+            const confRing = $("confRing");
+            const confVal = $("confVal");
+            const genreBars = $("genreBars");
+            const errorToast = $("errorToast");
+            const errorText = $("errorText");
+            const btnAgain = $("btnAgain");
+            const navStatusText = $("navStatusText");
+
+            let selectedFile = null;
+            let lastResult = null; // Store last prediction for download/share
+
+            // ─── Generate particles ──────────────────────────
+            (() => {
+                const container = $("particles");
+                const colors = ["rgba(139,92,246,0.5)", "rgba(236,72,153,0.4)", "rgba(6,182,212,0.4)"];
+                for (let i = 0; i < 18; i++) {
+                    const el = document.createElement("div");
+                    el.className = "particle";
+                    el.style.setProperty("--size", (Math.random() * 6 + 3) + "px");
+                    el.style.setProperty("--color", colors[i % colors.length]);
+                    el.style.setProperty("--duration", (Math.random() * 15 + 15) + "s");
+                    el.style.setProperty("--delay", (Math.random() * -20) + "s");
+                    el.style.setProperty("--dx", (Math.random() * 100 - 50) + "px");
+                    el.style.setProperty("--dy", (Math.random() * 80 - 40) + "px");
+                    el.style.left = Math.random() * 100 + "%";
+                    el.style.top = Math.random() * 100 + "%";
+                    container.appendChild(el);
+                }
+            })();
+
+            // ─── New DOM refs ────────────────────────────────
+            const btnDownload = $("btnDownload");
+            const btnShare = $("btnShare");
+            const btnGoodFeedback = $("btnGoodFeedback");
+            const btnBadFeedback = $("btnBadFeedback");
+            const statSegments = $("statSegments");
+            const statTime = $("statTime");
+            const toastEl = $("toast");
+            const historyToggle = $("historyToggle");
+            const historyList = $("historyList");
+            const historyBadge = $("historyBadge");
+            const infoGenres = $("infoGenres");
+            const infoFormats = $("infoFormats");
+            const infoParams = $("infoParams");
+            const infoInput = $("infoInput");
+            const infoLabels = $("infoLabels");
+
+            // ─── File handling ───────────────────────────────
+            const EXTS = ["wav", "mp3", "ogg", "flac", "m4a"];
+
+            dropZone.addEventListener("click", () => fileInput.click());
+            dropZone.addEventListener("dragover", e => {
+                e.preventDefault();
+                dropZone.classList.add("drag-over");
+            });
+            dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+            dropZone.addEventListener("drop", e => {
+                e.preventDefault();
+                dropZone.classList.remove("drag-over");
+                if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+            });
+            dropZone.addEventListener("keydown", e => {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    fileInput.click();
+                }
+            });
+            fileInput.addEventListener("change", () => {
+                if (fileInput.files.length) handleFile(fileInput.files[0]);
+            });
+
+            audioEl.addEventListener("loadedmetadata", () => {
+                if (audioEl.duration && Number.isFinite(audioEl.duration)) {
+                    fpDuration.textContent = fmtDuration(audioEl.duration);
+                } else {
+                    fpDuration.textContent = "—";
+                }
+            });
+
+            function handleFile(file) {
+                const ext = file.name.split(".").pop().toLowerCase();
+                if (!EXTS.includes(ext)) {
+                    showError("Unsupported format. Use WAV, MP3, OGG, FLAC, or M4A.");
+                    return;
+                }
+                selectedFile = file;
+                fpName.textContent = file.name;
+                fpSize.textContent = fmtBytes(file.size);
+                fpType.textContent = ext.toUpperCase();
+                fpDuration.textContent = "Loading length…";
+                filePreview.classList.add("active");
+
+                const url = URL.createObjectURL(file);
+                audioEl.src = url;
+                audioPlayer.classList.add("active");
+
+                btnClassify.disabled = false;
+                hideError();
+            }
+
+            fpRemove.addEventListener("click", resetUpload);
+
+            function resetUpload() {
+                selectedFile = null;
+                fileInput.value = "";
+                filePreview.classList.remove("active");
+                audioPlayer.classList.remove("active");
+                audioEl.pause();
+                audioEl.src = "";
+                fpDuration.textContent = "—";
+                btnClassify.disabled = true;
+            }
+
+            // ─── Classify ────────────────────────────────────
+            btnClassify.addEventListener("click", async () => {
+                if (!selectedFile) return;
+                hideError();
+                audioEl.pause();
+
+                // Smooth section transition
+                const swapSection = (show, hide) => {
+                    hide.classList.add("section-fade-out");
+                    setTimeout(() => {
+                        hide.style.display = "none";
+                        hide.classList.remove("section-fade-out");
+                        show.style.display = "flex";
+                        if (show.id === "resultsSection") show.style.display = "block";
+                        show.classList.add("section-fade-in");
+                        setTimeout(() => show.classList.remove("section-fade-in"), 800);
+                    }, 400);
+                };
+
+                swapSection(loadingScreen, uploadCard);
+                resultsSection.classList.remove("active");
+
+                const steps = progressSteps.querySelectorAll(".progress-step");
+                steps.forEach(s => {
+                    s.classList.remove("active", "done");
+                });
+                steps[0].classList.add("active");
+
+                const msgs = ["Loading audio file…", "Extracting mel spectrogram…", "Running neural network…", "Computing probabilities…"];
+                let stepIdx = 0;
+                const stepTimer = setInterval(() => {
+                    if (stepIdx < steps.length) {
+                        steps[stepIdx].classList.remove("active");
+                        steps[stepIdx].classList.add("done");
+                        steps[stepIdx].querySelector(".step-icon").textContent = "✓";
+                    }
+                    stepIdx++;
+                    if (stepIdx < steps.length) {
+                        steps[stepIdx].classList.add("active");
+                        loaderDetail.textContent = msgs[stepIdx];
+                    }
+                }, 800);
+
+                const formData = new FormData();
+                formData.append("file", selectedFile);
+
+                try {
+                    const resp = await fetch("/predict", {
+                        method: "POST",
+                        body: formData
+                    });
+                    const data = await resp.json();
+
+                    clearInterval(stepTimer);
+
+                    steps.forEach(s => {
+                        s.classList.remove("active");
+                        s.classList.add("done");
+                        s.querySelector(".step-icon").textContent = "✓";
+                    });
+
+                    await delay(400);
+
+                    if (data.error) {
+                        loadingScreen.classList.remove("active");
+                        showError(data.error);
+                        uploadCard.style.display = "";
+                        steps.forEach((s, i) => {
+                            s.classList.remove("active", "done");
+                            s.querySelector(".step-icon").textContent = i + 1;
+                        });
+                        return;
+                    }
+
+                    swapSection(resultsSection, loadingScreen);
+
+                    // Store result for download/share
+                    lastResult = data;
+
+                    // Populate results
+                    resultEmoji.textContent = EMOJIS[data.predicted_genre] || "🎵";
+                    resultGenre.textContent = data.predicted_genre;
+
+                    // Processing stats
+                    statSegments.textContent = (data.segments_analyzed || "—") + " segments";
+                    statTime.textContent = (data.processing_time || "—") + " sec";
+
+                    // Confidence ring
+                    const circumference = 2 * Math.PI * 19;
+                    const offset = circumference * (1 - data.confidence / 100);
+                    confRing.style.strokeDasharray = circumference;
+                    confRing.style.strokeDashoffset = circumference;
+                    requestAnimationFrame(() => {
+                        confRing.style.strokeDashoffset = offset;
+                    });
+
+                    animateNumber(confVal, 0, data.confidence, 1000, v => v.toFixed(1) + "%");
+
+                    // Build bars
+                    genreBars.innerHTML = "";
+                    let idx = 0;
+                    let isFirst = true;
+                    for (const [genre, prob] of Object.entries(data.all_genres)) {
+                        const row = document.createElement("div");
+                        row.className = "genre-row";
+                        row.innerHTML = `
+                        <span class="genre-row-emoji">${EMOJIS[genre] || "🎵"}</span>
+                        <span class="genre-row-label">${genre}</span>
+                        <div class="genre-bar-track">
+                            <div class="genre-bar-value bar-c${idx % 10}" style="width: 0%;">
+                                ${prob.toFixed(1)}%
+                                ${isFirst ? '<span class="top-badge">TOP</span>' : ''}
+                            </div>
+                        </div>
+                    `;
+                        genreBars.appendChild(row);
+                        idx++;
+                        isFirst = false;
+                    }
+
+                    requestAnimationFrame(() => {
+                        setTimeout(() => {
+                            const bars = genreBars.querySelectorAll(".genre-bar-value");
+                            let i = 0;
+                            for (const [, prob] of Object.entries(data.all_genres)) {
+                                bars[i].style.width = Math.max(prob, 2.5) + "%";
+                                i++;
+                            }
+                        }, 80);
+                    });
+
+                    resultsSection.classList.add("active");
+
+                    // Refresh history panel
+                    loadHistory();
+
+                    steps.forEach((s, i) => {
+                        s.classList.remove("active", "done");
+                        s.querySelector(".step-icon").textContent = i + 1;
+                    });
+
+                } catch (err) {
+                    clearInterval(stepTimer);
+                    loadingScreen.classList.remove("active");
+                    uploadCard.style.display = "";
+                    showError("Connection failed. Make sure the Flask server is running.");
+                    steps.forEach((s, i) => {
+                        s.classList.remove("active", "done");
+                        s.querySelector(".step-icon").textContent = i + 1;
+                    });
+                }
+            });
+
+            // ─── Predict Again ───────────────────────────────
+            btnAgain.addEventListener("click", () => {
+                const swapSection = (show, hide) => {
+                    hide.classList.add("section-fade-out");
+                    setTimeout(() => {
+                        hide.style.display = "none";
+                        hide.classList.remove("section-fade-out");
+                        show.style.display = "block";
+                        show.classList.add("section-fade-in");
+                        setTimeout(() => show.classList.remove("section-fade-in"), 800);
+                    }, 400);
+                };
+
+                swapSection(uploadCard, resultsSection);
+                resetUpload();
+                // Re-enable flag button for next prediction
+                const flag = document.getElementById("btnFlag");
+                if (flag) {
+                    flag.disabled = false;
+                    flag.style.opacity = '';
+                    flag.style.pointerEvents = '';
+                }
+                // Reset feedback buttons for next prediction
+                resetFeedbackButtons();
+            });
+
+            // ─── Download Report ─────────────────────────────
+            btnDownload.addEventListener("click", async () => {
+                if (!lastResult) return;
+                try {
+                    const resp = await fetch("/download-result", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(lastResult)
+                    });
+                    const blob = await resp.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "soundsense_report.json";
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    showToast("Report downloaded!");
+                } catch {
+                    showToast("Download failed");
+                }
+            });
+
+            // ─── Share / Copy ────────────────────────────────
+            btnShare.addEventListener("click", () => {
+                if (!lastResult) return;
+                const text = `🎵 SoundSense Result\n` +
+                    `Genre: ${lastResult.predicted_genre}\n` +
+                    `Confidence: ${lastResult.confidence}%\n` +
+                    `Segments analyzed: ${lastResult.segments_analyzed}\n` +
+                    `Processing time: ${lastResult.processing_time}s`;
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast("Result copied to clipboard!");
+                }).catch(() => {
+                    // Fallback for older browsers / non-HTTPS
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try {
+                        document.execCommand('copy');
+                        showToast("Result copied to clipboard!");
+                    } catch {
+                        showToast("Copy failed");
+                    }
+                    document.body.removeChild(ta);
+                });
+            });
+
+            // ─── Flag Result ─────────────────────────────────
+            const btnFlag = $("btnFlag");
+            btnFlag.addEventListener("click", async () => {
+                if (!lastResult) return;
+                try {
+                    const resp = await fetch("/flag", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            predicted_genre: lastResult.predicted_genre,
+                            confidence: lastResult.confidence,
+                            filename: lastResult.filename || (selectedFile?.name) || "unknown",
+                            all_genres: lastResult.all_genres,
+                            timestamp: new Date().toISOString()
+                        })
+                    });
+                    if (resp.ok) {
+                        showToast("🚩 Result flagged for review!");
+                        btnFlag.disabled = true;
+                        btnFlag.style.opacity = '0.5';
+                        btnFlag.style.pointerEvents = 'none';
+                    } else {
+                        showToast("Flagging failed. Try again.");
+                    }
+                } catch {
+                    showToast("Could not flag — server unreachable.");
+                }
+            });
+
+            // ─── Feedback Buttons ─────────────────────────────
+            function resetFeedbackButtons() {
+                btnGoodFeedback.classList.remove("active");
+                btnBadFeedback.classList.remove("active");
+                btnGoodFeedback.disabled = false;
+                btnBadFeedback.disabled = false;
+            }
+
+            async function sendFeedback(type) {
+                if (!lastResult) return;
+                // Toggle: if already active, deselect
+                const isGood = type === "good";
+                const activeBtn = isGood ? btnGoodFeedback : btnBadFeedback;
+                const otherBtn = isGood ? btnBadFeedback : btnGoodFeedback;
+
+                // Remove active from the other button
+                otherBtn.classList.remove("active");
+                // Toggle active on the clicked button
+                activeBtn.classList.add("active");
+
+                try {
+                    const resp = await fetch("/feedback", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            predicted_genre: lastResult.predicted_genre,
+                            confidence: lastResult.confidence,
+                            filename: lastResult.filename || (selectedFile?.name) || "unknown",
+                            feedback: type,
+                            timestamp: new Date().toISOString()
+                        })
+                    });
+                    if (resp.ok) {
+                        showToast(isGood ? "👍 Thanks for the feedback!" : "👎 Thanks — we'll improve!");
+                    } else {
+                        showToast("Feedback failed. Try again.");
+                        activeBtn.classList.remove("active");
+                    }
+                } catch {
+                    showToast("Could not send feedback — server unreachable.");
+                    activeBtn.classList.remove("active");
+                }
+            }
+
+            btnGoodFeedback.addEventListener("click", () => sendFeedback("good"));
+            btnBadFeedback.addEventListener("click", () => sendFeedback("bad"));
+
+            async function loadModelInfo() {
+                try {
+                    const resp = await fetch("/model-info");
+                    const info = await resp.json();
+                    infoParams.textContent = fmtParams(info.total_parameters);
+                    infoInput.textContent = info.input_shape ? `Input ${info.input_shape}` : "Input shape: —";
+                    infoGenres.textContent = info.num_genres ? `${info.num_genres} genres` : "—";
+                    const labels = (info.genre_labels || []).slice(0, 5);
+                    const labelSuffix = info.genre_labels && info.genre_labels.length > 5 ? " +" : "";
+                    infoLabels.textContent = labels.length ? labels.join(" · ") + labelSuffix : "Labels unavailable";
+                    infoFormats.textContent = (info.allowed_formats || []).map(f => f.toUpperCase()).join(" · ") || "—";
+                    if (navStatusText && info.num_genres) {
+                        navStatusText.textContent = `Model Ready · ${info.num_genres} genres`;
+                    }
+                } catch {
+                    infoLabels.textContent = "Model info unavailable";
+                    infoFormats.textContent = "Offline";
+                }
+            }
+
+            // ─── History Panel ───────────────────────────────
+            historyToggle.addEventListener("click", () => {
+                historyToggle.classList.toggle("open");
+                historyList.classList.toggle("open");
+                if (historyList.classList.contains("open")) {
+                    loadHistory();
+                }
+            });
+
+            async function loadHistory() {
+                try {
+                    const resp = await fetch("/history");
+                    const history = await resp.json();
+                    historyBadge.textContent = history.length;
+                    if (history.length === 0) {
+                        historyList.innerHTML = '<div class="history-empty">No predictions yet. Upload a track to get started!</div>';
+                        return;
+                    }
+                    let html = "";
+                    for (const item of history.slice(0, 10)) {
+                        const emoji = EMOJIS[item.predicted_genre] || "🎵";
+                        const ts = new Date(item.timestamp);
+                        const timeStr = ts.toLocaleDateString() + " " + ts.toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        html += `
+                        <div class="history-item">
+                            <div class="hi-emoji">${emoji}</div>
+                            <div class="hi-info">
+                                <div class="hi-genre">${item.predicted_genre}</div>
+                                <div class="hi-file">${item.filename}</div>
+                            </div>
+                            <div class="hi-right">
+                                <div class="hi-conf">${item.confidence}%</div>
+                                <div class="hi-time">${timeStr}</div>
+                            </div>
+                        </div>`;
+                    }
+                    html += '<button class="history-clear" id="btnClearHistory">Clear History</button>';
+                    historyList.innerHTML = html;
+                    $("btnClearHistory").addEventListener("click", async () => {
+                        await fetch("/history/clear", {
+                            method: "POST"
+                        });
+                        loadHistory();
+                        showToast("History cleared");
+                    });
+                } catch {
+                    historyList.innerHTML = '<div class="history-empty">Could not load history.</div>';
+                }
+            }
+
+            // Load history on page load
+            loadModelInfo();
+            loadHistory();
+
+            // ─── Helpers ─────────────────────────────────────
+            function showError(msg) {
+                errorText.textContent = msg;
+                errorToast.classList.add("active");
+            }
+
+            function hideError() {
+                errorToast.classList.remove("active");
+            }
+
+            function showToast(msg) {
+                toastEl.textContent = msg;
+                toastEl.classList.add("show");
+                setTimeout(() => toastEl.classList.remove("show"), 2500);
+            }
+
+            function fmtParams(n) {
+                if (n === undefined || n === null) return "—";
+                if (n >= 1e6) return (n / 1e6).toFixed(1) + "M params";
+                if (n >= 1e3) return Math.round(n / 1e3) + "k params";
+                return n + " params";
+            }
+
+            function fmtBytes(b) {
+                if (b < 1024) return b + " B";
+                if (b < 1048576) return (b / 1024).toFixed(1) + " KB";
+                return (b / 1048576).toFixed(1) + " MB";
+            }
+
+            function fmtDuration(sec) {
+                const minutes = Math.floor(sec / 60);
+                const seconds = Math.max(0, Math.round(sec - minutes * 60));
+                return minutes + ":" + String(seconds).padStart(2, "0");
+            }
+
+            function delay(ms) {
+                return new Promise(r => setTimeout(r, ms));
+            }
+
+            function animateNumber(el, from, to, duration, fmt) {
+                const start = performance.now();
+
+                function tick(now) {
+                    const t = Math.min((now - start) / duration, 1);
+                    const eased = 1 - Math.pow(1 - t, 3);
+                    el.textContent = fmt(from + (to - from) * eased);
+                    if (t < 1) requestAnimationFrame(tick);
+                }
+                requestAnimationFrame(tick);
+            }
+        })();
+    </script>
+
+
+
+</body>
+
+</html>
